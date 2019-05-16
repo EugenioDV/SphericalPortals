@@ -46,7 +46,7 @@ void AWhitePortal::Tick(float DeltaTime)
 	APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(this, 0);
 
 	SceneCapture->SetRelativeLocation((CameraManager->GetTransformComponent()->GetComponentLocation()) - BlackPortal->GetActorLocation());
-	SceneCapture->SetWorldRotation(CameraManager->GetTransformComponent()->GetComponentRotation());
+	SceneCapture->SetRelativeRotation(CameraManager->GetTransformComponent()->GetComponentRotation());
 	SceneCapture->ClipPlaneBase = (Root->GetComponentLocation() - SceneCapture->GetForwardVector()*Radius*.5f);
 	SceneCapture->ClipPlaneNormal = SceneCapture->GetForwardVector();
 
