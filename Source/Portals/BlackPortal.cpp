@@ -2,6 +2,7 @@
 
 
 #include "BlackPortal.h"
+#include "WhitePortal.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SphereComponent.h"
 
@@ -15,18 +16,14 @@ ABlackPortal::ABlackPortal()
 	Root = CreateDefaultSubobject <USceneComponent>(TEXT("Root"));
 	SetRootComponent(Root);
 
-	MeshHole = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshHole"));
-	MeshHole->SetupAttachment(Root);
-	MeshHole->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	PortalStaticMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PortalStaticMesh"));
+	PortalStaticMesh->SetupAttachment(Root);
+	PortalStaticMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	OuterCollision = CreateDefaultSubobject <USphereComponent>(TEXT("OuterCollision"));
-	OuterCollision->SetupAttachment(Root);
+	CollisionSphere = CreateDefaultSubobject <USphereComponent>(TEXT("OuterCollision"));
+	CollisionSphere->SetupAttachment(Root);
 
-	InnerCollision = CreateDefaultSubobject <USphereComponent>(TEXT("InnerCollision"));
-	InnerCollision->SetupAttachment(Root);
-
-	OuterCollision->SetSphereRadius(MeshHole->RelativeScale3D.X*200.f);
-	InnerCollision->SetSphereRadius(MeshHole->RelativeScale3D.X*200.f-10.f);
+	ConstructPortal();
 }
 
 // Called when the game starts or when spawned
@@ -34,6 +31,20 @@ void ABlackPortal::BeginPlay()
 {
 	Super::BeginPlay();
 	
+}
+
+void ABlackPortal::ConstructPortal()
+{
+	PortalStaticMesh->SetRelativeScale3D(FVector(Radius / 200.f)); //this is tailored to the mesh import size! Watch out!
+	CollisionSphere->SetSphereRadius(Radius);
+	if (WhitePortal)
+	{
+		if (WhitePortal->Radius != Radius) {
+			WhitePortal->Radius = Radius;
+			WhitePortal->ConstructPortal();
+		}
+	}
+
 }
 
 // Called every frame

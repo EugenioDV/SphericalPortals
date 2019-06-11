@@ -7,9 +7,9 @@
 #include "WhitePortal.generated.h"
 
 class USceneCaptureComponent2D;
-class USceneComponent;
+class USphereComponent;
+class UStaticMeshComponent;
 class ABlackPortal;
-class APortalManager;
 
 UCLASS()
 class PORTALS_API AWhitePortal : public AActor
@@ -20,13 +20,17 @@ public:
 	// Sets default values for this actor's properties
 	AWhitePortal();
 
+	/** The portal's radius, in Unreal Units */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Setup)
+		float Radius = 200.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Setup)
+		ABlackPortal* BlackPortal;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Visual)
 		USceneCaptureComponent2D* SceneCapture;
@@ -34,13 +38,18 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 		USceneComponent* Root;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Setup)
-		ABlackPortal* BlackPortal;
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+		UStaticMeshComponent* PortalMesh;
 
-	/** The portal's radius, in Unreal Units */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Setup)
-		float Radius = 400.f;
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Mechanics)
+		USphereComponent* CollisionSphere;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Setup)
-		APortalManager* PortalManager;
+public:
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
+
+	void UpdatePortalRender(FVector RefLocation, FRotator RefRotation);
+
+	UFUNCTION(BlueprintCallable)
+		void ConstructPortal();
 };

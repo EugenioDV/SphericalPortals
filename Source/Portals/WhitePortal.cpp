@@ -4,8 +4,9 @@
 #include "WhitePortal.h"
 #include "BlackPortal.h"
 #include "Components/SceneCaptureComponent2D.h"
-#include "Kismet/GameplayStatics.h"
-#include "Camera/PlayerCameraManager.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/SphereComponent.h"
+
 
 //class APlayerCameraManager;
 
@@ -18,12 +19,21 @@ AWhitePortal::AWhitePortal()
 	Root = CreateDefaultSubobject <USceneComponent>(TEXT("Root"));
 	SetRootComponent(Root);
 
+	PortalMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PortalMesh"));
+	PortalMesh->SetupAttachment(Root);
+	PortalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	CollisionSphere = CreateDefaultSubobject <USphereComponent>(TEXT("OuterCollision"));
+	CollisionSphere->SetupAttachment(Root);
+
+
 	SceneCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("SceneCaptureComponent"));
 	SceneCapture->SetupAttachment(Root);
 	SceneCapture->bEnableClipPlane = true;
+	SceneCapture->bCaptureEveryFrame = false;
+	SceneCapture->bCaptureOnMovement = false;
 
 	this->SetTickGroup(ETickingGroup::TG_PostUpdateWork);
-
 }
 
 // Called when the game starts or when spawned
@@ -34,7 +44,6 @@ void AWhitePortal::BeginPlay()
 
 	if (BlackPortal) {
 		BlackPortal->WhitePortal = this;
-		BlackPortal->PortalManager = PortalManager;
 	}
 }
 
@@ -43,12 +52,36 @@ void AWhitePortal::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(this, 0);
+}
 
-	SceneCapture->SetRelativeLocation((CameraManager->GetTransformComponent()->GetComponentLocation()) - BlackPortal->GetActorLocation());
-	SceneCapture->SetRelativeRotation(CameraManager->GetTransformComponent()->GetComponentRotation());
-	SceneCapture->ClipPlaneBase = (Root->GetComponentLocation() - SceneCapture->GetForwardVector()*Radius*.5f);
-	SceneCapture->ClipPlaneNormal = SceneCapture->GetForwardVector();
+void AWhitePortal::UpdatePortalRender(FVector RefLocation, FRotator RefRotation)
+{
+	SceneCapture->SetRelativeLocation((RefLocation - BlackPortal->GetActorLocation()));
+	SceneCapture->SetRelativeRotation(RefRotation);
 
+	FVector PortalToCamera = Root->GetComponentLocation() - SceneCapture->GetComponentLocation();
+	float CamDistance = PortalToCamera.Size();
+	PortalToCamera /= CamDistance;
+
+	SceneCapture->bEnableClipPlane = CamDistance > Radius; //disable clip plane if we are inside the portal
+
+	SceneCapture->ClipPlaneBase = (Root->GetComponentLocation() - PortalToCamera * Radius);
+	SceneCapture->ClipPlaneNormal = PortalToCamera;
+	SceneCapture->CaptureSceneDeferred();
+}
+
+
+void AWhitePortal::ConstructPortal()
+{
+	if (BlackPortal) {
+		BlackPortal->WhitePortal = this;
+		if (BlackPortal->Radius != Radius) {
+			BlackPortal->Radius = Radius;
+			BlackPortal->ConstructPortal();
+		}
+	}
+
+	PortalMesh->SetRelativeScale3D(FVector(Radius / 200.f)); //this is tailored to the mesh import size! Watch out!
+	CollisionSphere->SetSphereRadius(Radius);
 }
 

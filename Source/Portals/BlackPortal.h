@@ -8,9 +8,7 @@
 
 class USphereComponent;
 class UStaticMeshComponent;
-class USceneComponent;
 class AWhitePortal;
-class APortalManager;
 
 UCLASS()
 class PORTALS_API ABlackPortal : public AActor
@@ -21,30 +19,37 @@ public:
 	// Sets default values for this actor's properties
 	ABlackPortal();
 
+	//set by White Portal's construct portal
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Setup)
+		AWhitePortal* WhitePortal;
+
+	//the radius of the portal, in Unreal Units
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Setup)
+		float Radius = 200.f;
+
 protected:
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+		UStaticMeshComponent* PortalStaticMesh;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Mechanics)
+		USphereComponent* CollisionSphere;
+
+	UPROPERTY(BlueprintReadOnly)
+		USceneComponent* Root;
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+
 
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-		UStaticMeshComponent* MeshHole;
-
-	UPROPERTY(BlueprintReadOnly, Category = Mechanics)
-		USphereComponent* OuterCollision;
-
-	UPROPERTY(BlueprintReadOnly, Category = Mechanics)
-		USphereComponent* InnerCollision;
-
 	UPROPERTY(BlueprintReadOnly)
-		USceneComponent* Root;
+		float CurrentScreenSize;
 
-	UPROPERTY(BlueprintReadWrite, Category = Setup)
-		AWhitePortal* WhitePortal;
-
-	UPROPERTY(BlueprintReadWrite, Category = Setup)
-		APortalManager* PortalManager;
-	   
+	UFUNCTION(BlueprintCallable)
+		void ConstructPortal();
 };
