@@ -44,6 +44,9 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Mechanics)
 		USphereComponent* CollisionSphere;
 
+private:
+	void MakeTheThing();
+
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
