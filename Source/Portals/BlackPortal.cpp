@@ -30,7 +30,6 @@ ABlackPortal::ABlackPortal()
 void ABlackPortal::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 void ABlackPortal::ConstructPortal()

@@ -28,8 +28,6 @@ float APortalPlayerController::GetPortalScreenRadius(ABlackPortal* Portal, APlay
 		if (SceneView != nullptr)
 		{
 			bool bIsPortalInFrustum = SceneView->ViewFrustum.IntersectSphere(Portal->GetActorLocation(), Portal->Radius);
-			if (bIsPortalInFrustum) UE_LOG(LogTemp, Warning, TEXT("Portal is in frustum!")) else UE_LOG(LogTemp, Warning, TEXT("Portal is NOT in frustum!"));
-			UE_LOG(LogTemp, Warning, TEXT("Portal name: %s"), *Portal->GetName());
 		}
 	}
 
