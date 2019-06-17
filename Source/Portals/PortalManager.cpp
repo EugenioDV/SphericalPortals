@@ -8,6 +8,7 @@
 #include "WhitePortal.h"
 #include "BlackPortal.h"
 #include "PortalPlayerController.h"
+#include "Engine/StaticMeshActor.h" //temporarly needed for our portal candidates list thing, we should know better.
 
 // Sets default values
 APortalManager::APortalManager()
@@ -23,11 +24,17 @@ void APortalManager::BeginPlay()
 {
 	Super::BeginPlay();
 
+	for (TActorIterator<AStaticMeshActor> ActorItr(GetWorld()); ActorItr; ++ActorItr)
+	{
+		CandidatesForPortalRender.Add((AActor*)*ActorItr);
+	}
 	
 	for (TActorIterator<AWhitePortal> ActorItr(GetWorld()); ActorItr; ++ActorItr)
 	{
 		WhitePortals.Add(*ActorItr);
+		ActorItr->UpdateRenderCandidates(&CandidatesForPortalRender);
 	}
+
 	for (TActorIterator<ABlackPortal> ActorItr(GetWorld()); ActorItr; ++ActorItr)
 	{
 		BlackPortals.Add(*ActorItr);
@@ -40,7 +47,7 @@ void APortalManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(this, 0);
+	APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 
 
 	//white portal update stuff
@@ -51,14 +58,13 @@ void APortalManager::Tick(float DeltaTime)
 	for (AWhitePortal* CurrentPortal : RelevantWhitePortals) //questo deve diventare un for loop da 1 ad n che termina se ho finito l'array o se n>max portals
 	{
 		CurrentPortal->UpdatePortalRender(CameraTransform->GetComponentLocation(), CameraTransform->GetComponentRotation());
-		//UE_LOG(LogTemp, Log, TEXT("Rendering portal %s"), *CurrentPortal->GetName());
 	}
 
 }
 
 void APortalManager::UpdatePortalRelevancy()
 {
-	APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(this, 0);
+	APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 
 	//black portal update stuff
 	APortalPlayerController* Controller = Cast<APortalPlayerController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));

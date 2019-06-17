@@ -25,6 +25,8 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = Debug)
 		TArray<ABlackPortal*> BlackPortals;
 
+	UPROPERTY(VisibleAnywhere, Category = Debug)
+		TArray<AActor*> CandidatesForPortalRender;
 
 private:
 
