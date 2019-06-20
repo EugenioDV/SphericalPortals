@@ -5,7 +5,7 @@
 #include "PortalPlayerController.h"
 
 APortalGameMode::APortalGameMode(const FObjectInitializer& ObjectInitializer) 
-	: Super(ObjectInitializer.DoNotCreateDefaultSubobject(TEXT("Sprite")))
+	: Super(ObjectInitializer)
 {
 	PlayerControllerClass = APortalPlayerController::StaticClass();
 }

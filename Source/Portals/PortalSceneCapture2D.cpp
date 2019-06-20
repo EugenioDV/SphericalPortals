@@ -12,7 +12,7 @@ void UPortalSceneCapture2D::UpdatePortalRender(FVector InRelativeLocation, FRota
 	SetRelativeRotation(InRelativeRotation);
 	
 	BuildRenderCone();
-	UKismetSystemLibrary::DrawDebugCone(this, RenderConeVertex, RenderConeDir, 999999.f, FMath::Acos(RenderConeCos), FMath::Acos(RenderConeCos), 10, FLinearColor::Blue);
+	//UKismetSystemLibrary::DrawDebugCone(this, RenderConeVertex, RenderConeDir, 999999.f, FMath::Acos(RenderConeCos), FMath::Acos(RenderConeCos), 10, FLinearColor::Blue);
 	BuildActorsRenderList(CandidatesForPortalRender);
 	CaptureSceneDeferred();
 
@@ -36,7 +36,6 @@ void UPortalSceneCapture2D::BuildActorsRenderList(TArray<AActor*>* CandidateActo
 		BoxMin = (BoxOrigin - BoxExtent);
 		BoxMax = (BoxOrigin + BoxExtent);
 
-		//UKismetSystemLibrary::DrawDebugBox(this, BoxOrigin, BoxExtent, FLinearColor::Black, FRotator::ZeroRotator, 0.f, 10.f);
 		//UE_LOG(LogTemp, Warning, TEXT("[PortalSceneCapture2D] Building actor render list, current actor Actor: %s"), *CurrentActor->GetName()); 
 		
 		// box interval!
@@ -160,7 +159,7 @@ bool UPortalSceneCapture2D::CandidatesHavePointInsideCone(FVector Vertices[8])
 
 bool UPortalSceneCapture2D::EdgeHasPointInsideCone(FVector P0, FVector P1)
 {
-	UKismetSystemLibrary::DrawDebugLine(this, P0 + RenderConeVertex, P1 + RenderConeVertex, FLinearColor::Green, 0.f, 10.f);
+	//UKismetSystemLibrary::DrawDebugLine(this, P0 + RenderConeVertex, P1 + RenderConeVertex, FLinearColor::Green, 0.f, 10.f);
 
 	//If one of the two edge points is inside the cone, we are done
 	if (FVector::DotProduct(P0, RenderConeDir) < RenderConeCos * P0.Size()) return true;
