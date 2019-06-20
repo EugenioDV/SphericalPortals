@@ -19,6 +19,6 @@ public:
 
 	float GetPortalScreenSize(ABlackPortal * Portal, APlayerCameraManager* CameraManager);
 
-	bool GetCurrentGameResolution(int& ResX, int& ResY);
+	bool GetCurrentGameResolution(int& OutResX, int& OutResY);
 
 };

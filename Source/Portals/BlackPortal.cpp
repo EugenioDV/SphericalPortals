@@ -32,7 +32,8 @@ ABlackPortal::ABlackPortal()
 void ABlackPortal::BeginPlay()
 {
 	Super::BeginPlay();
-	if (PortalBaseMaterial != nullptr) {
+	if (PortalBaseMaterial != nullptr)
+	{
 		PortalMaterialInstance = UMaterialInstanceDynamic::Create(PortalBaseMaterial, this);
 		PortalStaticMesh->SetMaterial(0, PortalMaterialInstance);
 	}
@@ -46,7 +47,8 @@ void ABlackPortal::ConstructPortal()
 	CollisionSphere->SetSphereRadius(Radius);
 	if (WhitePortal)
 	{
-		if (WhitePortal->Radius != Radius) {
+		if (WhitePortal->Radius != Radius)
+		{
 			WhitePortal->Radius = Radius;
 			WhitePortal->ConstructPortal();
 		}

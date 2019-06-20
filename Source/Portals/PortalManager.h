@@ -65,10 +65,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable)
-	void UpdateFovAngle(float NewFov);
+	void UpdateFovAngle(const float& NewFov);
 
 	UFUNCTION(BlueprintCallable)
-	void UpdateRenderTargetTextures(int NewResX, int NewResY);
+	void UpdateRenderTargetTextures(const int& NewResX, const int& NewResY);
 
 private:
 	void UpdatePortalRelevancy();

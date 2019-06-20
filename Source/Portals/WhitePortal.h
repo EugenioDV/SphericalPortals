@@ -48,7 +48,7 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	void UpdatePortalRender(FVector RefLocation, FRotator RefRotation, UTextureRenderTarget2D* RenderTarget);
+	void UpdatePortalRender(const FVector &RefLocation, const FRotator &RefRotation, UTextureRenderTarget2D* RenderTarget);
 
 	void UpdateRenderCandidates(TArray<AActor*>* NewRenderCandidates);
 
@@ -56,5 +56,5 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void ConstructPortal();
 
-	void UpdateRenderTargetFOV(float& NewFov);
+	void UpdateRenderTargetFOV(const float& NewFov);
 };

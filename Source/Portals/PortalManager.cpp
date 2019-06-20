@@ -64,14 +64,15 @@ void APortalManager::Tick(float DeltaTime)
 	
 }
 
-void APortalManager::UpdateFovAngle(float NewFov)
+void APortalManager::UpdateFovAngle(const float& NewFov)
 {
-	for (AWhitePortal* CurrentWhitePortal : WhitePortals) {
+	for (AWhitePortal* CurrentWhitePortal : WhitePortals)
+	{
 		CurrentWhitePortal->UpdateRenderTargetFOV(NewFov);
 	}
 }
 
-void APortalManager::UpdateRenderTargetTextures(int NewResX, int NewResY)
+void APortalManager::UpdateRenderTargetTextures(const int& NewResX, const int& NewResY)
 {
 	//destroy previous render targets?
 	for (int i = 0; i < MaxActivePortals; ++i)
@@ -83,7 +84,8 @@ void APortalManager::UpdateRenderTargetTextures(int NewResX, int NewResY)
 void APortalManager::UpdatePortalRelevancy()
 {
 
-	if (PortalController == nullptr) {
+	if (PortalController == nullptr)
+	{
 		UE_LOG(LogTemp, Error, TEXT("Error! PortalController not found. Is your Player Controller a PortalPlayerController or derived class?"));
 		return;
 	}
@@ -120,9 +122,12 @@ void APortalManager::AddRelevantPortal(ABlackPortal * PortalToAdd)
 
 void APortalManager::DynamicPortalUpdate()
 {
-	if (PortalController != nullptr) {
-		if (PortalController->GetCurrentGameResolution(CurrentResX, CurrentResY)) {
-			if (CurrentResX != StoredResX || CurrentResY != StoredResY) {
+	if (PortalController != nullptr)
+	{
+		if (PortalController->GetCurrentGameResolution(CurrentResX, CurrentResY))
+		{
+			if (CurrentResX != StoredResX || CurrentResY != StoredResY)
+			{
 				StoredResX = CurrentResX;
 				StoredResY = CurrentResY;
 				UpdateRenderTargetTextures(CurrentResX, CurrentResY);
@@ -130,8 +135,10 @@ void APortalManager::DynamicPortalUpdate()
 		}
 	}
 
-	if (CameraManager != nullptr) {
-		if (CameraManager->GetFOVAngle() != StoredFovAngle) {
+	if (CameraManager != nullptr)
+	{
+		if (CameraManager->GetFOVAngle() != StoredFovAngle)
+		{
 			StoredFovAngle = CameraManager->GetFOVAngle();
 				UpdateFovAngle(StoredFovAngle);
 		}

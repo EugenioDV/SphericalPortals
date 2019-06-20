@@ -43,7 +43,8 @@ void AWhitePortal::BeginPlay()
 	Super::BeginPlay();
 
 
-	if (BlackPortal) {
+	if (BlackPortal)
+	{
 		BlackPortal->WhitePortal = this;
 	}
 
@@ -57,7 +58,7 @@ void AWhitePortal::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-void AWhitePortal::UpdatePortalRender(FVector RefLocation, FRotator RefRotation, UTextureRenderTarget2D* RenderTarget)
+void AWhitePortal::UpdatePortalRender(const FVector &RefLocation, const FRotator &RefRotation, UTextureRenderTarget2D* RenderTarget)
 {
 	SceneCapture->TextureTarget = RenderTarget;
 
@@ -71,9 +72,11 @@ void AWhitePortal::UpdateRenderCandidates(TArray<AActor*>* NewRenderCandidates)
 
 void AWhitePortal::ConstructPortal()
 {
-	if (BlackPortal) {
+	if (BlackPortal)
+	{
 		BlackPortal->WhitePortal = this;
-		if (BlackPortal->Radius != Radius) {
+		if (BlackPortal->Radius != Radius)
+		{
 			BlackPortal->Radius = Radius;
 			BlackPortal->ConstructPortal();
 		}
@@ -83,7 +86,7 @@ void AWhitePortal::ConstructPortal()
 	CollisionSphere->SetSphereRadius(Radius);
 }
 
-void AWhitePortal::UpdateRenderTargetFOV(float& NewFov)
+void AWhitePortal::UpdateRenderTargetFOV(const float& NewFov)
 {
 	SceneCapture->FOVAngle = NewFov;
 }
