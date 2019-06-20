@@ -3,71 +3,90 @@
 
 #include "PortalSceneCapture2D.h"
 #include "WhitePortal.h"
+#include "BlackPortal.h"
+#include "Kismet/KismetSystemLibrary.h"
 
-
-void UPortalSceneCapture2D::UpdatePortalRender(FVector RelativeLocation, FRotator RelativeRotation)
+void UPortalSceneCapture2D::UpdatePortalRender(FVector InRelativeLocation, FRotator InRelativeRotation)
 {
-	SetRelativeLocation(RelativeLocation);
-	SetRelativeRotation(RelativeRotation);
-
+	SetRelativeLocation(InRelativeLocation);
+	SetRelativeRotation(InRelativeRotation);
+	
 	BuildRenderCone();
+	UKismetSystemLibrary::DrawDebugCone(this, RenderConeVertex, RenderConeDir, 999999.f, FMath::Acos(RenderConeCos), FMath::Acos(RenderConeCos), 10, FLinearColor::Blue);
 	BuildActorsRenderList(CandidatesForPortalRender);
-
 	CaptureSceneDeferred();
 
 }
 
 void UPortalSceneCapture2D::BuildActorsRenderList(TArray<AActor*>* CandidateActors)
 {
+	if (WhitePortal->BlackPortal->CurrentScreenSize > .37f) { //if the portal is kinda big on screen, we skip the check
+		ShowOnlyActors = *CandidateActors;
+		return;
+	}
+
 	TArray<AActor*> Result = *new TArray<AActor*>;
 
 	for (AActor* CurrentActor : *CandidateActors) {
+		
+		FVector BoxOrigin, BoxExtent, BoxMin, BoxMax;
 
-		FBox Box = CurrentActor->GetComponentsBoundingBox();
+		CurrentActor->GetActorBounds(false, BoxOrigin, BoxExtent);
 
+		BoxMin = (BoxOrigin - BoxExtent);
+		BoxMax = (BoxOrigin + BoxExtent);
+
+		//UKismetSystemLibrary::DrawDebugBox(this, BoxOrigin, BoxExtent, FLinearColor::Black, FRotator::ZeroRotator, 0.f, 10.f);
+		//UE_LOG(LogTemp, Warning, TEXT("[PortalSceneCapture2D] Building actor render list, current actor Actor: %s"), *CurrentActor->GetName()); 
+		
 		// box interval!
 		float BoxMinHeight, BoxMaxHeight;
-		CalculateBoxInterval(Box, BoxMinHeight, BoxMaxHeight);
+		CalculateBoxInterval(BoxOrigin, BoxExtent, BoxMinHeight, BoxMaxHeight);
 
 		//quick dejectance test: box is beyond the plane that cuts our cone
-		if (BoxMaxHeight >= 0) 	continue;
+		if (BoxMaxHeight >= 0) {
+			//UE_LOG(LogTemp, Warning, TEXT("[PortalSceneCapture2D] Actor refusec quick dejectance: %s"), *CurrentActor->GetName());
+			continue;
+		}
 
 		//quick acceptance test: box is intersected by cone direction ray
-		if (BoxIntersectsConeDir(Box)) {
+		if (BoxIntersectsConeDir(BoxMin, BoxMax)) {
 			Result.Add(CurrentActor);
+			//UE_LOG(LogTemp, Warning, TEXT("[PortalSceneCapture2D]  Actor accepted quick acceptance: %s"), *CurrentActor->GetName());
 			continue;
 		}
 
 		FVector Vertices[32];
-		Vertices[0] = (FVector(Box.Min.X, Box.Min.Y, Box.Min.Z) - RenderConeVertex);
-		Vertices[1] = (FVector(Box.Max.X, Box.Min.Y, Box.Min.Z) - RenderConeVertex);
-		Vertices[2] = (FVector(Box.Min.X, Box.Max.Y, Box.Min.Z) - RenderConeVertex);
-		Vertices[3] = (FVector(Box.Max.X, Box.Max.Y, Box.Min.Z) - RenderConeVertex);
-		Vertices[4] = (FVector(Box.Min.X, Box.Min.Y, Box.Max.Z) - RenderConeVertex);
-		Vertices[5] = (FVector(Box.Max.X, Box.Min.Y, Box.Max.Z) - RenderConeVertex);
-		Vertices[6] = (FVector(Box.Min.X, Box.Max.Y, Box.Max.Z) - RenderConeVertex);
-		Vertices[7] = (FVector(Box.Max.X, Box.Max.Y, Box.Max.Z) - RenderConeVertex);
+		Vertices[0] = (FVector(BoxMin.X, BoxMin.Y, BoxMin.Z) - RenderConeVertex);
+		Vertices[1] = (FVector(BoxMax.X, BoxMin.Y, BoxMin.Z) - RenderConeVertex);
+		Vertices[2] = (FVector(BoxMin.X, BoxMax.Y, BoxMin.Z) - RenderConeVertex);
+		Vertices[3] = (FVector(BoxMax.X, BoxMax.Y, BoxMin.Z) - RenderConeVertex);
+		Vertices[4] = (FVector(BoxMin.X, BoxMin.Y, BoxMax.Z) - RenderConeVertex);
+		Vertices[5] = (FVector(BoxMax.X, BoxMin.Y, BoxMax.Z) - RenderConeVertex);
+		Vertices[6] = (FVector(BoxMin.X, BoxMax.Y, BoxMax.Z) - RenderConeVertex);
+		Vertices[7] = (FVector(BoxMax.X, BoxMax.Y, BoxMax.Z) - RenderConeVertex);
 
 
 		if (BoxMinHeight < 0) {
 			//if box is fully inside the slope we check all candidates
-
 			if (CandidatesHavePointInsideCone(Vertices)) {
 				Result.Add(CurrentActor);
+				//UE_LOG(LogTemp, Warning, TEXT("[PortalSceneCapture2D] Actor accepted fully inside slope edge check: %s"), *CurrentActor->GetName());
 				continue;
 			}
-			else continue;
+			else {
+				//UE_LOG(LogTemp, Warning, TEXT("[PortalSceneCapture2D] Actor fully inside slope, refused edge check: %s"), *CurrentActor->GetName());
+				continue;
+			}
 		}
 
 		//if box is not fully inside the slope, we find the section that is and arrange our data accordingly
-
-		int NumCandidates = 0;
-		//Candidates.Empty();
-		float PMin[8];
-
-
-		if (IntersectingCandidatesHavePointInsideCone(Vertices, PMin)) {
+		if (IntersectingCandidatesHavePointInsideCone(Vertices)) {
+			//UE_LOG(LogTemp, Warning, TEXT("[PortalSceneCapture2D] Actor accepted partially inside cone edge check: %s"), *CurrentActor->GetName());
 			Result.Add(CurrentActor);
+		}
+		else {
+			//UE_LOG(LogTemp, Warning, TEXT("[PortalSceneCapture2D] Actor refused partially inside cone edge check: %s"), *CurrentActor->GetName());
 		}
 
 	}
@@ -86,17 +105,16 @@ void UPortalSceneCapture2D::BuildRenderCone()
 
 	FVector2D EdgeOffset = FVector2D(RenderConeDir.Y, -RenderConeDir.X);
 	EdgeOffset.Normalize(); //getting a random vector perpendicular to the cone direction and normalizing it
-	FVector EdgePoint = (WhitePortal->GetActorLocation() + FVector(EdgeOffset.X, EdgeOffset.Y, 0.f) * WhitePortal->Radius * 1.05f); //1.05 is for a little tolerance
+	FVector EdgePoint = (WhitePortal->GetActorLocation() + FVector(EdgeOffset.X, EdgeOffset.Y, 0.f) * WhitePortal->Radius * 1.1f); //1.f is for a little tolerance
 	FVector PointToEdge = (EdgePoint - RenderConeVertex);
 	PointToEdge.Normalize();
 
 	RenderConeCos = FVector::DotProduct(RenderConeDir, PointToEdge);
 }
 
-void UPortalSceneCapture2D::CalculateBoxInterval(FBox Box, float& Min, float& Max)
+void UPortalSceneCapture2D::CalculateBoxInterval(FVector &BoxOrigin, FVector &BoxExtent, float& Min, float& Max)
 {
-	FVector BoxExtent = Box.GetExtent();
-	FVector CmV = (Box.GetCenter() - WhitePortal->GetActorLocation());
+	FVector CmV = (BoxOrigin - WhitePortal->GetActorLocation());
 	float DdCmV = FVector::DotProduct(RenderConeDir, CmV);
 	float CalcRadius = (BoxExtent.X * FMath::Abs(RenderConeDir.X) + BoxExtent.Y * FMath::Abs(RenderConeDir.Y) + BoxExtent.Z * FMath::Abs(RenderConeDir.Z));
 
@@ -104,14 +122,14 @@ void UPortalSceneCapture2D::CalculateBoxInterval(FBox Box, float& Min, float& Ma
 	Max = DdCmV - CalcRadius;
 }
 
-bool UPortalSceneCapture2D::BoxIntersectsConeDir(FBox Box)
+bool UPortalSceneCapture2D::BoxIntersectsConeDir(FVector &BoxMin, FVector &BoxMax)
 {
 	float t0max = -BIG_NUMBER, t0min = BIG_NUMBER;
 
 	for (int i = 0; i < 3; ++i) {
 		float InvD = 1.0f / RenderConeDir[i];
-		float t0 = ((Box.Min[i] - WhitePortal->GetActorLocation()[i]) * InvD);
-		float t1 = ((Box.Max[i] - WhitePortal->GetActorLocation()[i]) * InvD);
+		float t0 = ((BoxMin[i] - WhitePortal->GetActorLocation()[i]) * InvD);
+		float t1 = ((BoxMax[i] - WhitePortal->GetActorLocation()[i]) * InvD);
 
 		if (InvD < 0.0f) { //switch the values around
 			t1 += t0;
@@ -131,7 +149,7 @@ bool UPortalSceneCapture2D::CandidatesHavePointInsideCone(FVector Vertices[8])
 {
 
 	for (int i = 0; i < 12; ++i) {
-		FBoxEdgePoint CurrentEdge = GlobalEdges[i];
+		FIntPoint CurrentEdge = GlobalEdges[i];
 		FVector P0 = Vertices[CurrentEdge.X];
 		FVector P1 = Vertices[CurrentEdge.Y];
 
@@ -142,6 +160,7 @@ bool UPortalSceneCapture2D::CandidatesHavePointInsideCone(FVector Vertices[8])
 
 bool UPortalSceneCapture2D::EdgeHasPointInsideCone(FVector P0, FVector P1)
 {
+	UKismetSystemLibrary::DrawDebugLine(this, P0 + RenderConeVertex, P1 + RenderConeVertex, FLinearColor::Green, 0.f, 10.f);
 
 	//If one of the two edge points is inside the cone, we are done
 	if (FVector::DotProduct(P0, RenderConeDir) < RenderConeCos * P0.Size()) return true;
@@ -164,17 +183,19 @@ bool UPortalSceneCapture2D::EdgeHasPointInsideCone(FVector P0, FVector P1)
 	return FVector::DotProduct(RenderConeDir, PMax) < RenderConeCos * PMax.Size(); // the maximizer being inside the cone will determine the result of this test
 }
 
-bool UPortalSceneCapture2D::IntersectingCandidatesHavePointInsideCone(FVector Vertices[8], float PMin[8])
+bool UPortalSceneCapture2D::IntersectingCandidatesHavePointInsideCone(FVector Vertices[8])
 {
+
+	float PMin[8];
+
 	for (int i = 0; i < 8; ++i) {
 		float H = FVector::DotProduct(RenderConeDir, Vertices[i]);
 		PMin[i] = RenderConeMinHeight + H;
-
 	}
 
 
 	for (int i = 0; i < 12; ++i) {
-		FBoxEdgePoint CurrentEdge = GlobalEdges[i];
+		FIntPoint CurrentEdge = GlobalEdges[i];
 
 		float P0Min = PMin[CurrentEdge.X];
 		float P1Min = PMin[CurrentEdge.Y];

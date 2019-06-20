@@ -5,7 +5,8 @@
 #include "WhitePortal.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SphereComponent.h"
-
+#include "Engine/TextureRenderTarget2D.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 // Sets default values
 ABlackPortal::ABlackPortal()
@@ -20,16 +21,23 @@ ABlackPortal::ABlackPortal()
 	PortalStaticMesh->SetupAttachment(Root);
 	PortalStaticMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
+
 	CollisionSphere = CreateDefaultSubobject <USphereComponent>(TEXT("OuterCollision"));
 	CollisionSphere->SetupAttachment(Root);
 
-	ConstructPortal();
+	
 }
 
 // Called when the game starts or when spawned
 void ABlackPortal::BeginPlay()
 {
 	Super::BeginPlay();
+	if (PortalBaseMaterial != nullptr) {
+		PortalMaterialInstance = UMaterialInstanceDynamic::Create(PortalBaseMaterial, this);
+		PortalStaticMesh->SetMaterial(0, PortalMaterialInstance);
+	}
+	else UE_LOG(LogTemp, Error, TEXT("Error! %s doesn't have a PortalBaseMaterial! Please set a default value in the class and verify that all your instances have a PortalBaseMaterial assigned"), *GetName());
+
 }
 
 void ABlackPortal::ConstructPortal()
@@ -45,6 +53,14 @@ void ABlackPortal::ConstructPortal()
 	}
 
 }
+
+void ABlackPortal::UpdateRenderTarget(UTextureRenderTarget2D* NewRenderTarget)
+{
+	if (PortalMaterialInstance != nullptr && NewRenderTarget != nullptr) PortalMaterialInstance->SetTextureParameterValue(TEXT("RenderTarget"), NewRenderTarget);
+
+	else UE_LOG(LogTemp, Error, TEXT("Error! Attempting to update portal with invalid render target or material instance! %s"), *GetName());
+}
+
 
 // Called every frame
 void ABlackPortal::Tick(float DeltaTime)

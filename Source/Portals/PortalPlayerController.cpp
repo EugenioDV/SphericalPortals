@@ -8,10 +8,14 @@
 #include "SceneView.h "
 #include "Engine/LocalPlayer.h"
 
-float APortalPlayerController::GetPortalScreenRadius(ABlackPortal* Portal, APlayerCameraManager* CameraManager) {
+float APortalPlayerController::GetPortalScreenSize(ABlackPortal* Portal, APlayerCameraManager* CameraManager) {
+
+	if (!Portal->WasRecentlyRendered(.01f)) {
+		return -1.f; // quick dejectance test, will help us if the portal is culled but not if it's being rendered by another portal, unfortunately
+	}
 
 	ULocalPlayer* LocalPlayer = GetLocalPlayer();
-	bool bIsPortalInFrustum;
+	bool bIsPortalInFrustum = false;
 	if (LocalPlayer != nullptr && LocalPlayer->ViewportClient != nullptr && LocalPlayer->ViewportClient->Viewport !=nullptr)
 	{
 		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
@@ -42,3 +46,17 @@ float APortalPlayerController::GetPortalScreenRadius(ABlackPortal* Portal, APlay
 	return FMath::Atan(Portal->Radius / (DistanceToObject*CamFOV));
 }
 
+bool APortalPlayerController::GetCurrentGameResolution(int& ResX, int& ResY)
+{
+	ULocalPlayer* LocalPlayer = GetLocalPlayer();
+	if (LocalPlayer != nullptr && LocalPlayer->ViewportClient != nullptr && LocalPlayer->ViewportClient->Viewport != nullptr) {
+
+		FIntPoint ResXY = LocalPlayer->ViewportClient->Viewport->GetSizeXY();
+
+		ResX = ResXY.X;
+		ResY = ResXY.Y;
+
+		return true;
+	}
+	return false;
+}

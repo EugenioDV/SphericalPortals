@@ -10,6 +10,7 @@ class UPortalSceneCapture2D;
 class USphereComponent;
 class UStaticMeshComponent;
 class ABlackPortal;
+class UTextureRenderTarget2D;
 
 UCLASS()
 class PORTALS_API AWhitePortal : public AActor
@@ -31,15 +32,14 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Visual)
-		UPortalSceneCapture2D* SceneCapture;
-
 	UPROPERTY(BlueprintReadOnly)
 		USceneComponent* Root;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
 		UStaticMeshComponent* PortalMesh;
+
+	UPROPERTY(BlueprintReadOnly, Category = Visual)
+		UPortalSceneCapture2D* SceneCapture;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Mechanics)
 		USphereComponent* CollisionSphere;
@@ -48,10 +48,13 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	void UpdatePortalRender(FVector RefLocation, FRotator RefRotation);
+	void UpdatePortalRender(FVector RefLocation, FRotator RefRotation, UTextureRenderTarget2D* RenderTarget);
 
 	void UpdateRenderCandidates(TArray<AActor*>* NewRenderCandidates);
 
+	//To be called in blueprint because constructor doesn't seem to work properly if called in CPP
 	UFUNCTION(BlueprintCallable)
 		void ConstructPortal();
+
+	void UpdateRenderTargetFOV(float& NewFov);
 };

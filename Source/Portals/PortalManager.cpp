@@ -9,6 +9,7 @@
 #include "BlackPortal.h"
 #include "PortalPlayerController.h"
 #include "Engine/StaticMeshActor.h" //temporarly needed for our portal candidates list thing, we should know better.
+#include "Kismet/KismetRenderingLibrary.h" 
 
 // Sets default values
 APortalManager::APortalManager()
@@ -24,11 +25,7 @@ void APortalManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	for (TActorIterator<AStaticMeshActor> ActorItr(GetWorld()); ActorItr; ++ActorItr)
-	{
-		CandidatesForPortalRender.Add((AActor*)*ActorItr);
-	}
-	
+
 	for (TActorIterator<AWhitePortal> ActorItr(GetWorld()); ActorItr; ++ActorItr)
 	{
 		WhitePortals.Add(*ActorItr);
@@ -39,6 +36,9 @@ void APortalManager::BeginPlay()
 	{
 		BlackPortals.Add(*ActorItr);
 	}
+	
+	PortalController = Cast<APortalPlayerController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
+	CameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 
 }
 
@@ -47,34 +47,53 @@ void APortalManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
+	BuildPortalRenderCandidatesList(); //this shouldn't be done every frame, but will do for now
 
-
-	//white portal update stuff
-	USceneComponent* CameraTransform = CameraManager->GetTransformComponent();
+	DynamicPortalUpdate(); //adjusts fov and resolution dynamically
 
 	UpdatePortalRelevancy();
-	
-	for (AWhitePortal* CurrentPortal : RelevantWhitePortals) //questo deve diventare un for loop da 1 ad n che termina se ho finito l'array o se n>max portals
-	{
-		CurrentPortal->UpdatePortalRender(CameraTransform->GetComponentLocation(), CameraTransform->GetComponentRotation());
-	}
 
+	USceneComponent* CameraTransform = CameraManager->GetTransformComponent();
+	int Max = FMath::Min(RelevantWhitePortals.Num(), (int)MaxActivePortals);
+
+	for (int i = 0; i<Max; ++i)
+	{
+		RelevantWhitePortals[i]->UpdatePortalRender(CameraTransform->GetComponentLocation(), CameraTransform->GetComponentRotation(), RenderTargets[i]);
+		RelevantBlackPortals[i]->UpdateRenderTarget(RenderTargets[i]);
+	}
+	
+}
+
+void APortalManager::UpdateFovAngle(float NewFov)
+{
+	for (AWhitePortal* CurrentWhitePortal : WhitePortals) {
+		CurrentWhitePortal->UpdateRenderTargetFOV(NewFov);
+	}
+}
+
+void APortalManager::UpdateRenderTargetTextures(int NewResX, int NewResY)
+{
+	//destroy previous render targets?
+	for (int i = 0; i < MaxActivePortals; ++i)
+	{
+		RenderTargets[i] = UKismetRenderingLibrary::CreateRenderTarget2D(GetWorld(), NewResX, NewResY);
+	}
 }
 
 void APortalManager::UpdatePortalRelevancy()
 {
-	APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 
-	//black portal update stuff
-	APortalPlayerController* Controller = Cast<APortalPlayerController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
-	
+	if (PortalController == nullptr) {
+		UE_LOG(LogTemp, Error, TEXT("Error! PortalController not found. Is your Player Controller a PortalPlayerController or derived class?"));
+		return;
+	}
+
 	RelevantBlackPortals.Empty();
 	RelevantWhitePortals.Empty();
 
 	for (ABlackPortal* CurrentPortal : BlackPortals)
 	{
-		CurrentPortal->CurrentScreenSize = Controller->GetPortalScreenRadius(CurrentPortal, CameraManager);
+		CurrentPortal->CurrentScreenSize = PortalController->GetPortalScreenSize(CurrentPortal, CameraManager);
 
 		if (CurrentPortal->CurrentScreenSize > RelevantPortalScreenSize) AddRelevantPortal(CurrentPortal);
 	}
@@ -96,6 +115,38 @@ void APortalManager::AddRelevantPortal(ABlackPortal * PortalToAdd)
 	RelevantWhitePortals.Add(PortalToAdd->WhitePortal);
 
 	return;
+
+}
+
+void APortalManager::DynamicPortalUpdate()
+{
+	if (PortalController != nullptr) {
+		if (PortalController->GetCurrentGameResolution(CurrentResX, CurrentResY)) {
+			if (CurrentResX != StoredResX || CurrentResY != StoredResY) {
+				StoredResX = CurrentResX;
+				StoredResY = CurrentResY;
+				UpdateRenderTargetTextures(CurrentResX, CurrentResY);
+			}
+		}
+	}
+
+	if (CameraManager != nullptr) {
+		if (CameraManager->GetFOVAngle() != StoredFovAngle) {
+			StoredFovAngle = CameraManager->GetFOVAngle();
+				UpdateFovAngle(StoredFovAngle);
+		}
+	}
+
+}
+
+void APortalManager::BuildPortalRenderCandidatesList()
+{
+	CandidatesForPortalRender.Empty();
+
+	for (TActorIterator<AActor> ActorItr(GetWorld()); ActorItr; ++ActorItr)
+	{
+		if (ActorItr->ActorHasTag(TEXT("RenderedInPortal")))	CandidatesForPortalRender.Add(*ActorItr);
+	}
 
 }
 

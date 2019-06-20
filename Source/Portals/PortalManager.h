@@ -8,7 +8,9 @@
 
 class ABlackPortal;
 class AWhitePortal;
-
+class APortalPlayerController;
+class APlayerCameraManager;
+class UTextureRenderTarget2D;
 
 UCLASS()
 class PORTALS_API APortalManager : public AActor
@@ -28,6 +30,12 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = Debug)
 		TArray<AActor*> CandidatesForPortalRender;
 
+	UPROPERTY(VisibleAnywhere, Category = Debug)
+		APortalPlayerController* PortalController;
+
+	UPROPERTY(VisibleAnywhere, Category = Debug)
+		APlayerCameraManager* CameraManager;
+
 private:
 
 	UPROPERTY(VisibleAnywhere, Category = Debug)
@@ -36,17 +44,16 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = Debug)
 		TArray<AWhitePortal*> RelevantWhitePortals;
 
+	UPROPERTY(VisibleAnywhere, Category = Debug)
+		UTextureRenderTarget2D* RenderTargets[10]; //just in case, the array of pointer's length is equal to the maximum possible value for MaxActivePortals
+
 	//minimum screen size for a portal to be considered for updating
 	UPROPERTY(EditAnywhere, Category = Performance)
 		float RelevantPortalScreenSize = .03f;
 
 	//maximum number of portals being rendered in one frame
-	UPROPERTY(EditAnywhere, Category = Performanc)
-		int8 MaxActivePortals = 5;
-
-	//resolution scale for a portal
-	UPROPERTY(EditAnywhere, Category = Performance)
-		float PortalResScale = 1.f;
+	UPROPERTY(EditAnywhere, Category = Performance, meta = (ClampMin = "1", ClampMax = "10", UIMin = "0", UIMax = "10"))
+		uint8 MaxActivePortals = 5;
 
 
 protected:
@@ -57,8 +64,22 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	UFUNCTION(BlueprintCallable)
+	void UpdateFovAngle(float NewFov);
+
+	UFUNCTION(BlueprintCallable)
+	void UpdateRenderTargetTextures(int NewResX, int NewResY);
+
 private:
 	void UpdatePortalRelevancy();
+
 	void AddRelevantPortal(ABlackPortal* PortalToAdd);
 
+	//bad function, should be removed when we have stable conditions for resolution and fov changes 
+	void DynamicPortalUpdate();
+
+	int CurrentResX, CurrentResY, StoredResX, StoredResY;
+	float StoredFovAngle;
+
+	void BuildPortalRenderCandidatesList();
 };

@@ -57,8 +57,10 @@ void AWhitePortal::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-void AWhitePortal::UpdatePortalRender(FVector RefLocation, FRotator RefRotation)
+void AWhitePortal::UpdatePortalRender(FVector RefLocation, FRotator RefRotation, UTextureRenderTarget2D* RenderTarget)
 {
+	SceneCapture->TextureTarget = RenderTarget;
+
 	SceneCapture->UpdatePortalRender((RefLocation - BlackPortal->GetActorLocation()), RefRotation);
 }
 
@@ -79,5 +81,10 @@ void AWhitePortal::ConstructPortal()
 
 	PortalMesh->SetRelativeScale3D(FVector(Radius / 200.f)); //this is tailored to the mesh import size! Watch out!
 	CollisionSphere->SetSphereRadius(Radius);
+}
+
+void AWhitePortal::UpdateRenderTargetFOV(float& NewFov)
+{
+	SceneCapture->FOVAngle = NewFov;
 }
 

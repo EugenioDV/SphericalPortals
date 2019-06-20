@@ -9,6 +9,7 @@
 class USphereComponent;
 class UStaticMeshComponent;
 class AWhitePortal;
+class UTextureRenderTarget2D;
 
 UCLASS()
 class PORTALS_API ABlackPortal : public AActor
@@ -27,6 +28,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Setup)
 		float Radius = 200.f;
 
+
 protected:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
@@ -41,7 +43,13 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-
+	//current material instance of the portal
+	UPROPERTY(BlueprintReadOnly)
+		UMaterialInstanceDynamic* PortalMaterialInstance;
+	
+	//the material to be instanced for the portal. Careful! Use PortalMaterialInstance to access runtime material stuff!
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Setup)
+		UMaterial* PortalBaseMaterial;
 
 public:
 	// Called every frame
@@ -50,6 +58,9 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 		float CurrentScreenSize;
 
+	//To be called in blueprint because constructor doesn't seem to work properly if called in CPP
 	UFUNCTION(BlueprintCallable)
 		void ConstructPortal();
+
+	void UpdateRenderTarget(UTextureRenderTarget2D* NewRenderTarget);
 };

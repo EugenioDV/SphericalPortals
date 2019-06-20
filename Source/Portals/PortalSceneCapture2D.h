@@ -21,7 +21,7 @@ public:
 	AWhitePortal* WhitePortal;
 	TArray<AActor*>* CandidatesForPortalRender;
 
-	void UpdatePortalRender(FVector Location, FRotator Rotation);
+	void UpdatePortalRender(FVector InRelativeLocation, FRotator InRelativeRotation);
 
 private:
 
@@ -32,15 +32,11 @@ private:
 
 	void BuildRenderCone();
 
-	void CalculateBoxInterval(FBox Box, float& Min, float& Max);
+	void CalculateBoxInterval(FVector& BoxOrigin, FVector& BoxExtent, float& Min, float& Max);
 
-	bool BoxIntersectsConeDir(FBox Box);
+	bool BoxIntersectsConeDir(FVector& BoxMin, FVector& BoxMax);
 
-	struct FBoxEdgePoint {//could use FIntPoint but meh
-		int X, Y;
-	};
-
-	FBoxEdgePoint GlobalEdges[12] = {
+	const FIntPoint GlobalEdges[12] = {
 		{0,1}, {1,3}, {2,3}, {0,2}, {4,5}, {5,7},
 		{6,7}, {4,6}, {0,4}, {1,5}, {3,7}, {2,6}
 	};
@@ -49,5 +45,5 @@ private:
 
 	bool EdgeHasPointInsideCone(FVector P0, FVector P1);
 
-	bool IntersectingCandidatesHavePointInsideCone(FVector Vertices[8], float PMin[8]);
+	bool IntersectingCandidatesHavePointInsideCone(FVector Vertices[8]);
 };

@@ -17,6 +17,8 @@ class PORTALS_API APortalPlayerController : public APlayerController
 
 public:
 
-	float GetPortalScreenRadius(ABlackPortal * Portal, APlayerCameraManager* CameraManager);
+	float GetPortalScreenSize(ABlackPortal * Portal, APlayerCameraManager* CameraManager);
+
+	bool GetCurrentGameResolution(int& ResX, int& ResY);
 
 };

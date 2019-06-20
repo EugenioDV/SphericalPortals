@@ -13,5 +13,6 @@ UCLASS()
 class PORTALS_API APortalGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
-	
+
+		APortalGameMode(const FObjectInitializer& ObjectInitializer);
 };
