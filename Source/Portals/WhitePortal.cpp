@@ -14,19 +14,17 @@ AWhitePortal::AWhitePortal()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	Root = CreateDefaultSubobject <USceneComponent>(TEXT("Root"));
-	SetRootComponent(Root);
+	CollisionSphere = CreateDefaultSubobject <USphereComponent>(TEXT("OuterCollision"));
+	CollisionSphere->SetCollisionProfileName(TEXT("Portal"));
+	SetRootComponent(CollisionSphere);
 
 	PortalMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PortalMesh"));
-	PortalMesh->SetupAttachment(Root);
+	PortalMesh->SetupAttachment(CollisionSphere);
 	PortalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	CollisionSphere = CreateDefaultSubobject <USphereComponent>(TEXT("OuterCollision"));
-	CollisionSphere->SetupAttachment(Root);
 
 
 	SceneCapture = CreateDefaultSubobject<UPortalSceneCapture2D>(TEXT("SceneCaptureComponent"));
-	SceneCapture->SetupAttachment(Root);
+	SceneCapture->SetupAttachment(CollisionSphere);
 	//might want to transfer this stuff to PortalComponent construct
 	SceneCapture->bCaptureEveryFrame = false;
 	SceneCapture->bCaptureOnMovement = false;
@@ -82,11 +80,11 @@ void AWhitePortal::ConstructPortal()
 		}
 	}
 
-	PortalMesh->SetRelativeScale3D(FVector(Radius / 200.f)); //this is tailored to the mesh import size! Watch out!
 	CollisionSphere->SetSphereRadius(Radius);
+	PortalMesh->SetWorldScale3D(FVector(Radius * .005f));
 }
 
-void AWhitePortal::UpdateRenderTargetFOV(const float& NewFov)
+void AWhitePortal::UpdateRenderTargetFOV(float NewFov)
 {
 	SceneCapture->FOVAngle = NewFov;
 }

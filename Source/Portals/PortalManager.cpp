@@ -64,7 +64,7 @@ void APortalManager::Tick(float DeltaTime)
 	
 }
 
-void APortalManager::UpdateFovAngle(const float& NewFov)
+void APortalManager::UpdateFovAngle(float NewFov)
 {
 	for (AWhitePortal* CurrentWhitePortal : WhitePortals)
 	{
@@ -72,7 +72,7 @@ void APortalManager::UpdateFovAngle(const float& NewFov)
 	}
 }
 
-void APortalManager::UpdateRenderTargetTextures(const int& NewResX, const int& NewResY)
+void APortalManager::UpdateRenderTargetTextures(int NewResX, int NewResY)
 {
 	//destroy previous render targets?
 	for (int i = 0; i < MaxActivePortals; ++i)

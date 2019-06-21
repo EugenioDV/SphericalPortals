@@ -54,6 +54,7 @@ void UPortalSceneCapture2D::BuildActorsRenderList(TArray<AActor*>* CandidateActo
 		//quick acceptance test: box is intersected by cone direction ray
 		if (BoxIntersectsConeDir(BoxMin, BoxMax))
 		{
+			//UKismetSystemLibrary::DrawDebugBox(this, BoxOrigin, BoxExtent, FLinearColor::Red, FRotator::ZeroRotator, 0.f, 10.f);
 			Result.Add(CurrentActor);
 			//UE_LOG(LogTemp, Warning, TEXT("[PortalSceneCapture2D]  Actor accepted quick acceptance: %s"), *CurrentActor->GetName());
 			continue;
@@ -132,28 +133,70 @@ void UPortalSceneCapture2D::CalculateBoxInterval(const FVector &BoxOrigin, const
 
 bool UPortalSceneCapture2D::BoxIntersectsConeDir(const FVector &BoxMin, const FVector &BoxMax)
 {
-	float t0max = -BIG_NUMBER, t0min = BIG_NUMBER;
+#define NUMDIM	3
+#define RIGHT	0
+#define LEFT	1
+#define MIDDLE	2
 
-	for (int i = 0; i < 3; ++i)
+	FVector coord;				/* hit point */
 	{
-		float InvD = 1.0f / RenderConeDir[i];
-		float t0 = ((BoxMin[i] - WhitePortal->GetActorLocation()[i]) * InvD);
-		float t1 = ((BoxMax[i] - WhitePortal->GetActorLocation()[i]) * InvD);
+		bool inside = true;
+		char quadrant[NUMDIM];
+		register int i;
+		int whichPlane;
+		double maxT[NUMDIM];
+		double candidatePlane[NUMDIM];
 
-		if (InvD < 0.0f)
-		{
-			//switch the values around
-			t1 += t0;
-			t0 = t1 - t0;
-			t1 -= t0;
+		/* Find candidate planes; this loop can be avoided if
+		rays cast all from the eye(assume perpsective view) */
+		for (i = 0; i < NUMDIM; i++)
+			if (WhitePortal->GetActorLocation()[i] < BoxMin[i]) {
+				quadrant[i] = LEFT;
+				candidatePlane[i] = BoxMin[i];
+				inside = false;
+			}
+			else if (WhitePortal->GetActorLocation()[i] > BoxMax[i]) {
+				quadrant[i] = RIGHT;
+				candidatePlane[i] = BoxMax[i];
+				inside = false;
+			}
+			else {
+				quadrant[i] = MIDDLE;
+			}
+
+		/* Ray origin inside bounding box */
+		if (inside) {
+			coord = WhitePortal->GetActorLocation();
+			return (true);
 		}
 
-		t0max = t0 > t0max ? t0 : t0max;
-		t0min = t1 < t0min ? t1 : t0min;
 
-		if (t0min <= t0max)	return false;
+		/* Calculate T distances to candidate planes */
+		for (i = 0; i < NUMDIM; i++)
+			if (quadrant[i] != MIDDLE && -RenderConeDir[i] != 0.)
+				maxT[i] = (candidatePlane[i] - WhitePortal->GetActorLocation()[i]) / -RenderConeDir[i];
+			else
+				maxT[i] = -1.;
+
+		/* Get largest of the maxT's for final choice of intersection */
+		whichPlane = 0;
+		for (i = 1; i < NUMDIM; i++)
+			if (maxT[whichPlane] < maxT[i])
+				whichPlane = i;
+
+		/* Check final candidate actually inside box */
+		if (maxT[whichPlane] < 0.) return (false);
+		for (i = 0; i < NUMDIM; i++)
+			if (whichPlane != i) {
+				coord[i] = WhitePortal->GetActorLocation()[i] + maxT[whichPlane] * -RenderConeDir[i];
+				if (coord[i] < BoxMin[i] || coord[i] > BoxMax[i])
+					return (false);
+			}
+			else {
+				coord[i] = candidatePlane[i];
+			}
+		return (true);				/* ray hits box */
 	}
-	return true;
 }
 
 bool UPortalSceneCapture2D::CandidatesHavePointInsideCone(const FVector Vertices[8])

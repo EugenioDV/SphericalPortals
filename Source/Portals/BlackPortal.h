@@ -10,6 +10,8 @@ class USphereComponent;
 class UStaticMeshComponent;
 class AWhitePortal;
 class UTextureRenderTarget2D;
+class UPortalEncapsulatorBox;
+class UPortalEncapsulatorSphere;
 
 UCLASS()
 class PORTALS_API ABlackPortal : public AActor
@@ -34,11 +36,8 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
 		UStaticMeshComponent* PortalStaticMesh;
 
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Mechanics)
+	UPROPERTY(BlueprintReadOnly, Category = Mechanics)
 		USphereComponent* CollisionSphere;
-
-	UPROPERTY(BlueprintReadOnly)
-		USceneComponent* Root;
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -51,6 +50,21 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Setup)
 		UMaterial* PortalBaseMaterial;
 
+private:
+
+	UPROPERTY()
+		TArray<UPortalEncapsulatorBox*> TeleportCandidateBoxes;
+
+	UPROPERTY()
+		TArray<UPortalEncapsulatorSphere*> TeleportCandidateSpheres;
+
+	void TeleportActor(AActor* ActorToTeleport);
+
+	UFUNCTION()
+		void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	
+	UFUNCTION()
+		void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

@@ -32,16 +32,13 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	UPROPERTY(BlueprintReadOnly)
-		USceneComponent* Root;
-
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
 		UStaticMeshComponent* PortalMesh;
 
 	UPROPERTY(BlueprintReadOnly, Category = Visual)
 		UPortalSceneCapture2D* SceneCapture;
 
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Mechanics)
+	UPROPERTY(BlueprintReadOnly, Category = Mechanics)
 		USphereComponent* CollisionSphere;
 
 public:
@@ -56,5 +53,5 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void ConstructPortal();
 
-	void UpdateRenderTargetFOV(const float& NewFov);
+	void UpdateRenderTargetFOV(float NewFov);
 };
