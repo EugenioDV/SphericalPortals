@@ -6,13 +6,17 @@
 #include "BlackPortal.h"
 #include "Kismet/KismetSystemLibrary.h"
 
-void UPortalSceneCapture2D::UpdatePortalRender(const FVector &InRelativeLocation, const FRotator &InRelativeRotation)
+void UPortalSceneCapture2D::SetupPortalRender(const FVector &InRelativeLocation, const FRotator &InRelativeRotation)
 {
 	SetRelativeLocation(InRelativeLocation);
 	SetRelativeRotation(InRelativeRotation);
-	
 	BuildRenderCone();
-	//UKismetSystemLibrary::DrawDebugCone(this, RenderConeVertex, RenderConeDir, 999999.f, FMath::Acos(RenderConeCos), FMath::Acos(RenderConeCos), 10, FLinearColor::Blue);
+
+	UKismetSystemLibrary::DrawDebugCone(this, RenderConeVertex, RenderConeDir, 999999.f, FMath::Acos(RenderConeCos), FMath::Acos(RenderConeCos), 30, FLinearColor::Blue);
+}
+
+void UPortalSceneCapture2D::RenderPortal()
+{
 	BuildActorsRenderList(CandidatesForPortalRender);
 	CaptureSceneDeferred();
 }
@@ -105,20 +109,44 @@ void UPortalSceneCapture2D::BuildActorsRenderList(TArray<AActor*>* CandidateActo
 
 void UPortalSceneCapture2D::BuildRenderCone()
 {
-
 	RenderConeVertex = GetComponentLocation();
 
 	RenderConeDir = RenderConeVertex - WhitePortal->GetActorLocation();
 	RenderConeMinHeight = RenderConeDir.Size();
 	RenderConeDir /= RenderConeMinHeight;
 
-	FVector2D EdgeOffset = FVector2D(RenderConeDir.Y, -RenderConeDir.X);
-	EdgeOffset.Normalize(); //getting a random vector perpendicular to the cone direction and normalizing it
-	FVector EdgePoint = (WhitePortal->GetActorLocation() + FVector(EdgeOffset.X, EdgeOffset.Y, 0.f) * WhitePortal->Radius * 1.1f); //1.f is for a little tolerance
+	RenderConeEdgeOffset = FVector2D(RenderConeDir.Y, -RenderConeDir.X);
+	RenderConeEdgeOffset.Normalize(); //getting a random vector perpendicular to the cone direction and normalizing it
+	FVector EdgePoint = (WhitePortal->GetActorLocation() + FVector(RenderConeEdgeOffset.X, RenderConeEdgeOffset.Y, 0.f) * WhitePortal->Radius * 1.1f); //1.f is for a little tolerance
 	FVector PointToEdge = (EdgePoint - RenderConeVertex);
 	PointToEdge.Normalize();
 
 	RenderConeCos = FVector::DotProduct(RenderConeDir, PointToEdge);
+}
+
+
+//This is a modified version of the Sphere-Cone interesection in the magnus engine. All credits go to Jonathan Hale, for more info, have a read! https://blog.squareys.de/dual-cone-view-culling-for-vr/
+bool UPortalSceneCapture2D::SphereIntersectsRenderCone(const FVector& SphereCenter, float SphereRadius) {
+
+	//quickDejectionTest for infinite cone frustum
+	FVector coneNormal = -RenderConeDir;
+	FVector diff = SphereCenter - RenderConeVertex;
+
+	float distance = FVector::DotProduct(diff, coneNormal);
+
+	if (distance < RenderConeMinHeight) return false;
+	//actual test
+
+	float halfAngle = FMath::Acos(RenderConeCos);
+
+
+	float sinAngle = FMath::Sin(halfAngle);
+
+	FVector c = sinAngle * diff + coneNormal * SphereRadius;
+	float lenA = FVector::DotProduct(c, coneNormal);
+
+	float tanAngleSqPlusOne = 1.f + FMath::Pow(FMath::Tan(halfAngle), 2.f);
+	return c.SizeSquared() <= lenA * lenA * tanAngleSqPlusOne;
 }
 
 void UPortalSceneCapture2D::CalculateBoxInterval(const FVector &BoxOrigin, const FVector &BoxExtent, float& OutMin, float& OutMax)
@@ -133,35 +161,35 @@ void UPortalSceneCapture2D::CalculateBoxInterval(const FVector &BoxOrigin, const
 
 bool UPortalSceneCapture2D::BoxIntersectsConeDir(const FVector &BoxMin, const FVector &BoxMax)
 {
-#define NUMDIM	3
-#define RIGHT	0
-#define LEFT	1
-#define MIDDLE	2
+	const int NumDim = 3;
+	const int Right = 0;
+	const int Left = 1;
+	const int Middle = 2;
 
 	FVector coord;				/* hit point */
 	{
 		bool inside = true;
-		char quadrant[NUMDIM];
+		char quadrant[NumDim];
 		register int i;
 		int whichPlane;
-		double maxT[NUMDIM];
-		double candidatePlane[NUMDIM];
+		double maxT[NumDim];
+		double candidatePlane[NumDim];
 
 		/* Find candidate planes; this loop can be avoided if
 		rays cast all from the eye(assume perpsective view) */
-		for (i = 0; i < NUMDIM; i++)
+		for (i = 0; i < NumDim; i++)
 			if (WhitePortal->GetActorLocation()[i] < BoxMin[i]) {
-				quadrant[i] = LEFT;
+				quadrant[i] = Left;
 				candidatePlane[i] = BoxMin[i];
 				inside = false;
 			}
 			else if (WhitePortal->GetActorLocation()[i] > BoxMax[i]) {
-				quadrant[i] = RIGHT;
+				quadrant[i] = Right;
 				candidatePlane[i] = BoxMax[i];
 				inside = false;
 			}
 			else {
-				quadrant[i] = MIDDLE;
+				quadrant[i] = Middle;
 			}
 
 		/* Ray origin inside bounding box */
@@ -172,21 +200,21 @@ bool UPortalSceneCapture2D::BoxIntersectsConeDir(const FVector &BoxMin, const FV
 
 
 		/* Calculate T distances to candidate planes */
-		for (i = 0; i < NUMDIM; i++)
-			if (quadrant[i] != MIDDLE && -RenderConeDir[i] != 0.)
+		for (i = 0; i < NumDim; i++)
+			if (quadrant[i] != Middle && -RenderConeDir[i] != 0.)
 				maxT[i] = (candidatePlane[i] - WhitePortal->GetActorLocation()[i]) / -RenderConeDir[i];
 			else
 				maxT[i] = -1.;
 
 		/* Get largest of the maxT's for final choice of intersection */
 		whichPlane = 0;
-		for (i = 1; i < NUMDIM; i++)
+		for (i = 1; i < NumDim; i++)
 			if (maxT[whichPlane] < maxT[i])
 				whichPlane = i;
 
 		/* Check final candidate actually inside box */
 		if (maxT[whichPlane] < 0.) return (false);
-		for (i = 0; i < NUMDIM; i++)
+		for (i = 0; i < NumDim; i++)
 			if (whichPlane != i) {
 				coord[i] = WhitePortal->GetActorLocation()[i] + maxT[whichPlane] * -RenderConeDir[i];
 				if (coord[i] < BoxMin[i] || coord[i] > BoxMax[i])

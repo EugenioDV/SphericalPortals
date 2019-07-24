@@ -35,17 +35,21 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
 		UStaticMeshComponent* PortalMesh;
 
-	UPROPERTY(BlueprintReadOnly, Category = Visual)
-		UPortalSceneCapture2D* SceneCapture;
-
 	UPROPERTY(BlueprintReadOnly, Category = Mechanics)
 		USphereComponent* CollisionSphere;
 
 public:
+
+	UPROPERTY(BlueprintReadOnly, Category = Visual)
+		UPortalSceneCapture2D* SceneCapture;
+
+
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	void UpdatePortalRender(const FVector &RefLocation, const FRotator &RefRotation, UTextureRenderTarget2D* RenderTarget);
+	void SetupPortalRender(const FVector &RefLocation, const FRotator &RefRotation, UTextureRenderTarget2D* RenderTarget);
+
+	void RenderPortal();
 
 	void UpdateRenderCandidates(TArray<AActor*>* NewRenderCandidates);
 
@@ -54,4 +58,6 @@ public:
 		void ConstructPortal();
 
 	void UpdateRenderTargetFOV(float NewFov);
+
+	bool IsPortalSubportal(ABlackPortal* Candidate);
 };

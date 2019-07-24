@@ -82,4 +82,6 @@ private:
 	float StoredFovAngle;
 
 	void BuildPortalRenderCandidatesList();
+
+	void RenderSubPortals(AWhitePortal* WhitePortal, int MainPortals, int& SubPortalsRendered);
 };

@@ -21,13 +21,19 @@ public:
 	AWhitePortal* WhitePortal;
 	TArray<AActor*>* CandidatesForPortalRender;
 
-	void UpdatePortalRender(const FVector &InRelativeLocation, const FRotator &InRelativeRotation);
+	void SetupPortalRender(const FVector &InRelativeLocation, const FRotator &InRelativeRotation);
+
+	void RenderPortal();
+
+	bool SphereIntersectsRenderCone(const FVector& SphereCenter, float SphereRadius); //todo this is inconsistently public...
+
 
 private:
 
 	void BuildActorsRenderList(TArray<AActor*>* Candidates);
 
 	FVector RenderConeVertex, RenderConeDir;
+	FVector2D RenderConeEdgeOffset; //used for some calculations
 	float RenderConeMinHeight, RenderConeCos;
 
 	void BuildRenderCone();

@@ -12,6 +12,8 @@ class AWhitePortal;
 class UTextureRenderTarget2D;
 class UPortalEncapsulatorBox;
 class UPortalEncapsulatorSphere;
+class UMaterial;
+
 
 UCLASS()
 class PORTALS_API ABlackPortal : public AActor

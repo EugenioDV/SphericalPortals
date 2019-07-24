@@ -62,9 +62,19 @@ void ABlackPortal::ConstructPortal()
 
 void ABlackPortal::UpdateRenderTarget(UTextureRenderTarget2D* NewRenderTarget)
 {
-	if (PortalMaterialInstance != nullptr && NewRenderTarget != nullptr) PortalMaterialInstance->SetTextureParameterValue(TEXT("RenderTarget"), NewRenderTarget);
+	if (!PortalMaterialInstance)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Error! Attempting to update portal with invalid material instance! %s"), *GetName());
+		return;
+	}
+		
+	if (!NewRenderTarget)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Error! Attempting to update portal with invalid render target! %s"), *GetName());
+		return;
+	}
 
-	else UE_LOG(LogTemp, Error, TEXT("Error! Attempting to update portal with invalid render target or material instance! %s"), *GetName());
+	PortalMaterialInstance->SetTextureParameterValue(TEXT("RenderTarget"), NewRenderTarget);
 }
 
 

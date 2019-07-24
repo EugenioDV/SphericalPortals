@@ -6,10 +6,12 @@
 #include "Camera/PlayerCameraManager.h"
 #include "EngineUtils.h" 
 #include "WhitePortal.h"
+#include "PortalSceneCapture2D.h"
 #include "BlackPortal.h"
 #include "PortalPlayerController.h"
 #include "Engine/StaticMeshActor.h" //temporarly needed for our portal candidates list thing, we should know better.
-#include "Kismet/KismetRenderingLibrary.h" 
+#include "Kismet/KismetRenderingLibrary.h"
+
 
 // Sets default values
 APortalManager::APortalManager()
@@ -54,13 +56,31 @@ void APortalManager::Tick(float DeltaTime)
 	UpdatePortalRelevancy();
 
 	USceneComponent* CameraTransform = CameraManager->GetTransformComponent();
-	int Max = FMath::Min(RelevantWhitePortals.Num(), (int)MaxActivePortals);
+	int Max = FMath::Min(RelevantWhitePortals.Num(), (int)MaxActivePortals); //todo ugly name
+	int SubPortalsRendered = 0;
 
-	for (int i = 0; i<Max; ++i)
+	for (int i = 0; i < Max; ++i)
 	{
-		RelevantWhitePortals[i]->UpdatePortalRender(CameraTransform->GetComponentLocation(), CameraTransform->GetComponentRotation(), RenderTargets[i]);
+		RelevantWhitePortals[i]->SetupPortalRender(CameraTransform->GetComponentLocation(), CameraTransform->GetComponentRotation(), RenderTargets[i]);
 		RelevantBlackPortals[i]->UpdateRenderTarget(RenderTargets[i]);
+
+		if ((int)MaxActivePortals > (Max + SubPortalsRendered))
+		{
+			RenderSubPortals(RelevantWhitePortals[i], Max, SubPortalsRendered);
+		}
+
+		RelevantWhitePortals[i]->RenderPortal();
+
 	}
+
+//	if ((int)MaxActivePortals > Max)
+//	{
+//		RenderSubPortals(Max - MaxActivePortals - 1, Max); //todo ugly shit
+//	}
+
+//	for (int i = 0; i < Max; ++i) //todo we are looping twice goddamnit, delete rendersubportals and implement a function thingy called on the current portal in-between the loop
+//	{
+//	}
 	
 }
 
@@ -155,5 +175,28 @@ void APortalManager::BuildPortalRenderCandidatesList()
 		if (ActorItr->ActorHasTag(TEXT("RenderedInPortal")))	CandidatesForPortalRender.Add(*ActorItr);
 	}
 
+}
+
+void APortalManager::RenderSubPortals(AWhitePortal* WhitePortal, int MainPortals, int& SubPortalsRendered)
+{
+	for (AWhitePortal* CurrentSubWhitePortal : WhitePortals) {
+		UE_LOG(LogTemp, Warning, TEXT("Current portal is %s, Current SubPortal is %s"), *WhitePortal->GetName(), *CurrentSubWhitePortal->GetName());
+
+		if (RelevantWhitePortals.Contains(CurrentSubWhitePortal)) continue; //todo purge the subarray of this shi
+
+		bool bShouldRenderSubportal = WhitePortal->IsPortalSubportal(CurrentSubWhitePortal->BlackPortal);
+		if (bShouldRenderSubportal)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Rendering Subportal!"));
+
+			CurrentSubWhitePortal->SetupPortalRender(WhitePortal->SceneCapture->GetComponentLocation(), WhitePortal->SceneCapture->GetComponentRotation(), RenderTargets[MaxActivePortals - SubPortalsRendered -1]);
+			CurrentSubWhitePortal->BlackPortal->UpdateRenderTarget(RenderTargets[MaxActivePortals - SubPortalsRendered -1]);
+			CurrentSubWhitePortal->RenderPortal();
+
+			++SubPortalsRendered;
+			if ((MainPortals + SubPortalsRendered) == MaxActivePortals) return;
+		}
+
+	}
 }
 

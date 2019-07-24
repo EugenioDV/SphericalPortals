@@ -56,11 +56,16 @@ void AWhitePortal::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-void AWhitePortal::UpdatePortalRender(const FVector &RefLocation, const FRotator &RefRotation, UTextureRenderTarget2D* RenderTarget)
+void AWhitePortal::SetupPortalRender(const FVector &RefLocation, const FRotator &RefRotation, UTextureRenderTarget2D* RenderTarget)
 {
 	SceneCapture->TextureTarget = RenderTarget;
 
-	SceneCapture->UpdatePortalRender((RefLocation - BlackPortal->GetActorLocation()), RefRotation);
+	SceneCapture->SetupPortalRender((RefLocation - BlackPortal->GetActorLocation()), RefRotation);
+}
+
+void AWhitePortal::RenderPortal()
+{
+	SceneCapture->RenderPortal();
 }
 
 void AWhitePortal::UpdateRenderCandidates(TArray<AActor*>* NewRenderCandidates)
@@ -87,5 +92,17 @@ void AWhitePortal::ConstructPortal()
 void AWhitePortal::UpdateRenderTargetFOV(float NewFov)
 {
 	SceneCapture->FOVAngle = NewFov;
+}
+
+bool AWhitePortal::IsPortalSubportal(ABlackPortal* Candidate)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Evaluating subportal..."));
+	if (SceneCapture->SphereIntersectsRenderCone(Candidate->GetActorLocation(), Candidate->Radius)) {
+		UE_LOG(LogTemp, Warning, TEXT("Subportal accepted!"));
+
+	}
+
+
+	return SceneCapture->SphereIntersectsRenderCone(Candidate->GetActorLocation(), Candidate->Radius);
 }
 
