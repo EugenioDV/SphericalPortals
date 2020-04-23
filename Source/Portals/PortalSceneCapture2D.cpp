@@ -2,6 +2,10 @@
 
 
 #include "PortalSceneCapture2D.h"
+#include "Engine/StaticMeshActor.h" //todo rogue code
+#include "Engine/World.h" //todo rogue code
+#include "Components/StaticMeshComponent.h" //todo rogue code
+
 #include "WhitePortal.h"
 #include "BlackPortal.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -12,13 +16,63 @@ void UPortalSceneCapture2D::SetupPortalRender(const FVector &InRelativeLocation,
 	SetRelativeRotation(InRelativeRotation);
 	BuildRenderCone();
 
-	UKismetSystemLibrary::DrawDebugCone(this, RenderConeVertex, RenderConeDir, 999999.f, FMath::Acos(RenderConeCos), FMath::Acos(RenderConeCos), 30, FLinearColor::Blue);
+	//UKismetSystemLibrary::DrawDebugCone(this, RenderConeVertex, RenderConeDir, 999999.f, FMath::Acos(RenderConeCos), FMath::Acos(RenderConeCos), 30, FLinearColor::Blue);
 }
 
 void UPortalSceneCapture2D::RenderPortal()
 {
 	BuildActorsRenderList(CandidatesForPortalRender);
-	CaptureSceneDeferred();
+
+	for (AActor* ActorToHide : DuplicatedActors)
+	{
+		ActorToHide->SetActorHiddenInGame(true);
+	}
+
+	for (size_t a = 0; a< ShowOnlyActors.Num(); ++a)
+	{
+		
+		AStaticMeshActor* Actor = Cast<AStaticMeshActor>(ShowOnlyActors[a]);
+
+		if (!Actor) continue;
+
+		FVector ActorLocation = Actor->GetActorLocation() + (WhitePortal->BlackPortal->GetActorLocation() - WhitePortal->GetActorLocation());
+
+		FTransform Tr = FTransform(Actor->GetActorRotation(), ActorLocation, Actor->GetActorScale3D());
+
+		DuplicatedActors[a]->SetActorTransform(Tr);
+		DuplicatedActors[a]->SetActorHiddenInGame(false);
+
+		DuplicatedActors[a]->GetStaticMeshComponent()->SetStaticMesh(Actor->GetStaticMeshComponent()->GetStaticMesh());
+	}
+
+	//CaptureSceneDeferred();
+}
+
+void UPortalSceneCapture2D::BeginPlay()
+{
+	Super::BeginPlay();
+
+	for (size_t a = 0; a < 100; ++a)
+	{
+		FTransform Tr = FTransform(FRotator::ZeroRotator, FVector::ZeroVector, FVector::OneVector);
+
+		FActorSpawnParameters Params;
+
+		Params.Owner = GetOwner();
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		AStaticMeshActor* DuplicatedActor = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), Tr, Params);
+		DuplicatedActor->GetStaticMeshComponent()->SetRenderInMainPass(false);
+		DuplicatedActor->GetStaticMeshComponent()->SetRenderCustomDepth(true);
+		//DuplicatedActor->GetStaticMeshComponent()->SetCustomDepthStencilValue(1);
+		//DuplicatedActor->GetStaticMeshComponent()->SetCustomDepthStencilWriteMask(ERendererStencilMask::ERSM_255);
+
+		DuplicatedActor->GetStaticMeshComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		DuplicatedActor->SetMobility(EComponentMobility::Movable);
+
+
+		DuplicatedActors.Add(DuplicatedActor);
+	}
 }
 
 void UPortalSceneCapture2D::BuildActorsRenderList(TArray<AActor*>* CandidateActors)
@@ -34,7 +88,6 @@ void UPortalSceneCapture2D::BuildActorsRenderList(TArray<AActor*>* CandidateActo
 
 	for (AActor* CurrentActor : *CandidateActors)
 	{
-		
 		FVector BoxOrigin, BoxExtent, BoxMin, BoxMax;
 
 		CurrentActor->GetActorBounds(false, BoxOrigin, BoxExtent);

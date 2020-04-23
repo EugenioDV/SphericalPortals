@@ -7,6 +7,7 @@
 #include "PortalSceneCapture2D.generated.h"
 
 class AWhitePortal;
+class AStaticMeshActor;
 
 /**
  * 
@@ -25,10 +26,14 @@ public:
 
 	void RenderPortal();
 
+	virtual void BeginPlay() override;
+
 	bool SphereIntersectsRenderCone(const FVector& SphereCenter, float SphereRadius); //todo this is inconsistently public...
 
 
 private:
+
+	TArray<AStaticMeshActor*> DuplicatedActors;
 
 	void BuildActorsRenderList(TArray<AActor*>* Candidates);
 
